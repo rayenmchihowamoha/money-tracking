@@ -30,13 +30,12 @@ export async function handler(event) {
     if (dueType === 'date' && !dueDate) {
       return json(400, { error: 'A due date is required when timeline is "specific date".' });
     }
-    if (direction === 'owed_to_me' && !originWalletId) {
-      return json(400, { error: 'Which wallet the loan came from is required.' });
-    }
-
-    if (direction === 'owed_to_me') {
+    if (direction === 'owed_to_me' && originWalletId) {
       const walletRows = await sql`SELECT id, currency FROM wallets WHERE id = ${originWalletId} AND profile_id = ${profileId}`;
       if (walletRows.length === 0) return json(404, { error: 'Origin wallet not found.' });
+      if (walletRows[0].currency !== currency) {
+        return json(400, { error: 'The wallet currency must match the debt currency.' });
+      }
     }
 
     const [debt] = await sql`
@@ -45,7 +44,7 @@ export async function handler(event) {
       RETURNING *
     `;
 
-    if (direction === 'owed_to_me') {
+    if (direction === 'owed_to_me' && originWalletId) {
       await sql`
         INSERT INTO transactions (wallet_id, type, amount, date, reason, source_or_target, denomination_breakdown, linked_debt_id)
         VALUES (${originWalletId}, 'withdrawal', ${totalAmount}, ${dateCreated}, ${'Loan to ' + person}, ${person}, ${denominationBreakdown ? JSON.stringify(denominationBreakdown) : null}, ${debt.id})

@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
+import TransactionDetailModal from '../components/TransactionDetailModal.jsx';
 
 export default function History() {
   const [wallets, setWallets] = useState([]);
   const [txns, setTxns] = useState([]);
   const [walletFilter, setWalletFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [detailTxn, setDetailTxn] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,10 +64,16 @@ export default function History() {
             </div>
             <div className="txn-meta">
               {walletMap[t.wallet_id]?.name} · {t.date} {t.reason ? `· ${t.reason}` : ''} {t.source_or_target ? `· ${t.source_or_target}` : ''}
+              {t.linked_transfer_id ? ' · transfer' : ''}
             </div>
           </div>
+          <button className="btn btn-outline btn-sm" onClick={() => setDetailTxn(t)}>View details</button>
         </div>
       ))}
+
+      {detailTxn && (
+        <TransactionDetailModal txn={detailTxn} wallet={walletMap[detailTxn.wallet_id]} onClose={() => setDetailTxn(null)} />
+      )}
     </div>
   );
 }

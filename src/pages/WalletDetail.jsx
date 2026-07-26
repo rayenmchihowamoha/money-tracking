@@ -3,20 +3,24 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import DepositModal from '../components/DepositModal.jsx';
 import WithdrawModal from '../components/WithdrawModal.jsx';
+import TransferModal from '../components/TransferModal.jsx';
+import TransactionDetailModal from '../components/TransactionDetailModal.jsx';
 
 export default function WalletDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [wallet, setWallet] = useState(null);
+  const [wallets, setWallets] = useState([]);
   const [txns, setTxns] = useState([]);
   const [modal, setModal] = useState(null);
+  const [detailTxn, setDetailTxn] = useState(null);
   const [loading, setLoading] = useState(true);
 
   async function load() {
     setLoading(true);
-    const wallets = await api.listWallets();
-    const w = wallets.find((x) => x.id === id);
-    setWallet(w);
+    const w = await api.listWallets();
+    setWallets(w);
+    setWallet(w.find((x) => x.id === id));
     const t = await api.listTransactions(id);
     setTxns(t);
     setLoading(false);
@@ -48,9 +52,10 @@ export default function WalletDetail() {
             {wallet.currency} · Balance: <span className="amount">{Number(wallet.balance).toLocaleString()}</span>
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn btn-outline" onClick={() => setModal('deposit')}>+ Add</button>
           <button className="btn btn-outline" onClick={() => setModal('withdraw')}>− Take out</button>
+          <button className="btn btn-outline" onClick={() => setModal('transfer')}>⇄ Transfer</button>
           <button className="btn btn-outline" onClick={handleArchive}>Archive</button>
         </div>
       </div>
@@ -66,11 +71,15 @@ export default function WalletDetail() {
             <div className="txn-meta">
               {t.date} {t.reason ? `· ${t.reason}` : ''} {t.source_or_target ? `· ${t.source_or_target}` : ''}
               {t.linked_debt_id ? ' · linked to a debt' : ''}
+              {t.linked_transfer_id ? ' · transfer' : ''}
             </div>
           </div>
-          {!t.linked_debt_id && (
-            <button className="btn btn-outline btn-sm" onClick={() => handleDelete(t.id)}>Delete</button>
-          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-outline btn-sm" onClick={() => setDetailTxn(t)}>View details</button>
+            {!t.linked_debt_id && (
+              <button className="btn btn-outline btn-sm" onClick={() => handleDelete(t.id)}>Delete</button>
+            )}
+          </div>
         </div>
       ))}
 
@@ -79,6 +88,12 @@ export default function WalletDetail() {
       )}
       {modal === 'withdraw' && (
         <WithdrawModal wallet={wallet} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />
+      )}
+      {modal === 'transfer' && (
+        <TransferModal wallets={wallets} fromWallet={wallet} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />
+      )}
+      {detailTxn && (
+        <TransactionDetailModal txn={detailTxn} wallet={wallet} onClose={() => setDetailTxn(null)} />
       )}
     </div>
   );

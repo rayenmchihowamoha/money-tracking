@@ -1,25 +1,34 @@
 import React, { useState } from 'react';
 import Modal from './Modal.jsx';
+import DenominationPicker from './DenominationPicker.jsx';
 import { api } from '../api.js';
 
 const CURRENCIES = ['DA', 'USD', 'EUR', 'USDT'];
 
-export default function NewDebtModal({ onClose, onDone }) {
+export default function NewDebtModal({ direction, wallets, onClose, onDone }) {
+  const isIOwe = direction === 'i_owe';
+  const activeWallets = (wallets || []).filter((w) => !w.archived);
+
   const [person, setPerson] = useState('');
+  const [walletId, setWalletId] = useState(''); // only relevant for owed_to_me
   const [currency, setCurrency] = useState('DA');
   const [amount, setAmount] = useState('');
   const [dateCreated, setDateCreated] = useState(new Date().toISOString().slice(0, 10));
   const [dueType, setDueType] = useState('soon');
   const [dueDate, setDueDate] = useState('');
   const [note, setNote] = useState('');
+  const [denoms, setDenoms] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const selectedWallet = activeWallets.find((w) => w.id === walletId);
+  const effectiveCurrency = !isIOwe && selectedWallet ? selectedWallet.currency : currency;
 
   async function submit(e) {
     e.preventDefault();
     setError('');
     if (!person.trim() || !amount || Number(amount) <= 0) {
-      setError('Who you owe and the amount are required.');
+      setError(`Who ${isIOwe ? 'you owe' : 'owes you'} and the amount are required.`);
       return;
     }
     if (dueType === 'date' && !dueDate) {
@@ -29,14 +38,16 @@ export default function NewDebtModal({ onClose, onDone }) {
     setBusy(true);
     try {
       await api.createDebt({
-        direction: 'i_owe',
+        direction,
         person: person.trim(),
-        currency,
+        currency: effectiveCurrency,
         totalAmount: Number(amount),
         dateCreated,
         dueType,
         dueDate: dueType === 'date' ? dueDate : null,
+        originWalletId: !isIOwe && walletId ? walletId : null,
         note: note || null,
+        denominationBreakdown: !isIOwe && selectedWallet?.currency === 'DA' ? denoms : null,
       });
       onDone();
     } catch (e) {
@@ -47,12 +58,25 @@ export default function NewDebtModal({ onClose, onDone }) {
   }
 
   return (
-    <Modal title="Log money you owe" onClose={onClose}>
+    <Modal title={isIOwe ? 'Log money you owe' : 'Log money owed to you'} onClose={onClose}>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <label>
-          Who / what it's for *
-          <input value={person} onChange={(e) => setPerson(e.target.value)} placeholder="e.g. Amine, phone repair" autoFocus />
+          {isIOwe ? "Who / what it's for *" : 'Who owes you *'}
+          <input value={person} onChange={(e) => setPerson(e.target.value)} placeholder={isIOwe ? 'e.g. Amine, phone repair' : 'e.g. Khaled'} autoFocus />
         </label>
+
+        {!isIOwe && (
+          <label>
+            Which wallet did the money leave from? (optional)
+            <select value={walletId} onChange={(e) => setWalletId(e.target.value)}>
+              <option value="">No wallet — cash that wasn't tracked</option>
+              {activeWallets.map((w) => (
+                <option key={w.id} value={w.id}>{w.name} ({w.currency})</option>
+              ))}
+            </select>
+          </label>
+        )}
+
         <div className="field-row">
           <label>
             Amount *
@@ -60,13 +84,22 @@ export default function NewDebtModal({ onClose, onDone }) {
           </label>
           <label>
             Currency
-            <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            <select
+              value={effectiveCurrency}
+              onChange={(e) => setCurrency(e.target.value)}
+              disabled={!isIOwe && !!selectedWallet}
+            >
               {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </label>
         </div>
+
+        {!isIOwe && selectedWallet?.currency === 'DA' && (
+          <DenominationPicker amount={amount} value={denoms} onChange={setDenoms} />
+        )}
+
         <label>
-          When you took it on
+          When {isIOwe ? 'you took it on' : 'you lent it'}
           <input type="date" value={dateCreated} onChange={(e) => setDateCreated(e.target.value)} />
         </label>
         <div className="field-row">

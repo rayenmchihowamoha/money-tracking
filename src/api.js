@@ -42,6 +42,10 @@ export const api = {
     request(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteTransaction: (id) => request(`/transactions/${id}`, { method: 'DELETE' }),
 
+  // transfers
+  createTransfer: (payload) =>
+    request('/transfers', { method: 'POST', body: JSON.stringify(payload) }),
+
   // debts
   listDebts: () => request('/debts'),
   createDebt: (payload) =>

@@ -5,6 +5,7 @@ import NewWalletModal from '../components/NewWalletModal.jsx';
 import DepositModal from '../components/DepositModal.jsx';
 import WithdrawModal from '../components/WithdrawModal.jsx';
 import WalletPieChart from '../components/WalletPieChart.jsx';
+import TransferModal from '../components/TransferModal.jsx';
 
 export default function Dashboard() {
   const [wallets, setWallets] = useState([]);
@@ -41,16 +42,24 @@ export default function Dashboard() {
           <h1 className="page-title">Dashboard</h1>
           <p className="page-sub" style={{ marginBottom: 0 }}>Every wallet, kept separate by currency.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setModal('new-wallet')}>+ New wallet</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-outline" onClick={() => setModal('transfer')} disabled={active.length < 2}>⇄ Transfer</button>
+          <button className="btn btn-primary" onClick={() => setModal('new-wallet')}>+ New wallet</button>
+        </div>
       </div>
 
       {active.length === 0 && (
         <div className="empty-state">No wallets yet. Create your first one — "money in my pocket", "with mom", whatever fits.</div>
       )}
 
-      {Object.entries(grouped).map(([currency, list]) => (
+      {Object.entries(grouped).map(([currency, list]) => {
+        const total = list.reduce((acc, w) => acc + Number(w.balance), 0);
+        return (
         <div className="currency-group" key={currency}>
-          <div className="currency-group-label">{currency}</div>
+          <div className="currency-group-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span>{currency}</span>
+            <span className="amount">Total: {total.toLocaleString()} {currency}</span>
+          </div>
           <div className="wallet-grid">
             {list.map((w) => (
               <div className="ledger-card" key={w.id}>
@@ -68,7 +77,8 @@ export default function Dashboard() {
           </div>
           {list.length > 1 && <WalletPieChart wallets={list} />}
         </div>
-      ))}
+        );
+      })}
 
       <div className="section-head" style={{ marginTop: 20 }}>
         <h2 style={{ fontSize: 18 }}>Debts</h2>
@@ -97,6 +107,9 @@ export default function Dashboard() {
       )}
       {modal?.type === 'withdraw' && (
         <WithdrawModal wallet={modal.wallet} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />
+      )}
+      {modal === 'transfer' && (
+        <TransferModal wallets={active} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />
       )}
     </div>
   );

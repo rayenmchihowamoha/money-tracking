@@ -52,9 +52,11 @@ export default function Debts() {
     <div>
       <div className="section-head">
         <h1 className="page-title">Debts</h1>
-        <button className="btn btn-primary" onClick={() => setModal('new')}>+ Log money you owe</button>
+        <button className="btn btn-primary" onClick={() => setModal('new')}>
+          {tab === 'i_owe' ? '+ Log money you owe' : '+ Log money owed to you'}
+        </button>
       </div>
-      <p className="page-sub">Lending money out is logged from the wallet's "Take out" form.</p>
+      <p className="page-sub">Lending money out can also be logged from a wallet's "Take out" form.</p>
 
       <div className="tabs">
         <button className={`tab ${tab === 'i_owe' ? 'active' : ''}`} onClick={() => setTab('i_owe')}>I owe</button>
@@ -96,7 +98,7 @@ export default function Debts() {
       })}
 
       {modal === 'new' && (
-        <NewDebtModal onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />
+        <NewDebtModal direction={tab} wallets={wallets} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />
       )}
       {modal?.type === 'pay' && (
         <PayDebtModal debt={modal.debt} wallets={wallets} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />

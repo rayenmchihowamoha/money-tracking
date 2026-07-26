@@ -65,13 +65,18 @@ export async function handler(event) {
   if (event.httpMethod === 'DELETE' && segments.length === 1) {
     const txnId = segments[0];
     const existing = await sql`
-      SELECT t.id, t.linked_debt_id FROM transactions t
+      SELECT t.id, t.linked_debt_id, t.linked_transfer_id FROM transactions t
       JOIN wallets w ON w.id = t.wallet_id
       WHERE t.id = ${txnId} AND w.profile_id = ${profileId}
     `;
     if (existing.length === 0) return json(404, { error: 'Transaction not found.' });
     if (existing[0].linked_debt_id) {
       return json(400, { error: 'This entry is linked to a debt and cannot be deleted directly. Delete the debt instead.' });
+    }
+    if (existing[0].linked_transfer_id) {
+      // Deleting the transfer cascades to remove both linked legs.
+      await sql`DELETE FROM transfers WHERE id = ${existing[0].linked_transfer_id}`;
+      return json(200, { ok: true });
     }
     await sql`DELETE FROM transactions WHERE id = ${txnId}`;
     return json(200, { ok: true });
