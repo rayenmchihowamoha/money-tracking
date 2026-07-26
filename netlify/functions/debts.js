@@ -47,7 +47,7 @@ export async function handler(event) {
     if (direction === 'owed_to_me' && originWalletId) {
       await sql`
         INSERT INTO transactions (wallet_id, type, amount, date, reason, source_or_target, denomination_breakdown, linked_debt_id)
-        VALUES (${originWalletId}, 'withdrawal', ${totalAmount}, ${dateCreated}, ${'Loan to ' + person}, ${person}, ${denominationBreakdown ? JSON.stringify(denominationBreakdown) : null}, ${debt.id})
+        VALUES (${originWalletId}, 'withdrawal', ${totalAmount}, ${dateCreated}, ${'Loan to ' + person}, ${person}, ${denominationBreakdown ? sql.json(denominationBreakdown) : null}, ${debt.id})
       `;
     }
 

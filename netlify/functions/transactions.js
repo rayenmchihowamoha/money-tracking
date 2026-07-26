@@ -39,7 +39,7 @@ export async function handler(event) {
 
     const [txn] = await sql`
       INSERT INTO transactions (wallet_id, type, amount, date, reason, source_or_target, denomination_breakdown)
-      VALUES (${walletId}, ${type}, ${amount}, ${date}, ${reason || null}, ${sourceOrTarget || null}, ${denominationBreakdown ? JSON.stringify(denominationBreakdown) : null})
+      VALUES (${walletId}, ${type}, ${amount}, ${date}, ${reason || null}, ${sourceOrTarget || null}, ${denominationBreakdown ? sql.json(denominationBreakdown) : null})
       RETURNING *
     `;
     return json(200, txn);

@@ -107,3 +107,10 @@ ALTER TABLE transactions
 
 CREATE INDEX idx_transfers_profile ON transfers(profile_id);
 CREATE INDEX idx_transactions_linked_transfer ON transactions(linked_transfer_id);
+
+-- ============================================================
+-- Repair double-encoded denomination_breakdown (see migration 0003)
+-- ============================================================
+UPDATE transactions
+SET denomination_breakdown = (denomination_breakdown #>> '{}')::jsonb
+WHERE jsonb_typeof(denomination_breakdown) = 'string';
