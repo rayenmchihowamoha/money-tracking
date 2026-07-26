@@ -1,10 +1,27 @@
 import { getConnectionString } from '@netlify/database';
 import postgres from 'postgres';
 
-// Netlify Database (GA) auto-provisions Postgres and injects the right
-// connection string for whichever branch (production / deploy preview)
-// this function is running on. getConnectionString() handles that for us.
-export const sql = postgres(getConnectionString());
+// Netlify Database (GA) is supposed to auto-provision Postgres and inject
+// the right connection string for whichever branch (production / deploy
+// preview) this function is running on. If that auto-injection isn't
+// working in this environment, fall back to a manually-set DATABASE_URL
+// environment variable (copied from the Netlify Database dashboard).
+let connectionString;
+try {
+  connectionString = getConnectionString();
+} catch (err) {
+  connectionString = null;
+}
+if (!connectionString) {
+  connectionString = process.env.DATABASE_URL;
+}
+if (!connectionString) {
+  throw new Error(
+    'No database connection string available. Set a DATABASE_URL environment variable in Netlify (Project configuration → Environment variables) with the connection string copied from the Database dashboard.'
+  );
+}
+
+export const sql = postgres(connectionString);
 
 export function json(statusCode, data) {
   return {
