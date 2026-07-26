@@ -32,6 +32,7 @@ export const api = {
   createWallet: (name, currency) =>
     request('/wallets', { method: 'POST', body: JSON.stringify({ name, currency }) }),
   archiveWallet: (id) => request(`/wallets/${id}`, { method: 'DELETE' }),
+  deleteWallet: (id) => request(`/wallets/${id}?hard=true`, { method: 'DELETE' }),
 
   // transactions
   listTransactions: (walletId) =>

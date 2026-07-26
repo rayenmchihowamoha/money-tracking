@@ -3,12 +3,12 @@ import React from 'react';
 const NOTES = [2000, 1000, 500, 200, 100, 50, 20, 10, 5];
 
 // value shape: null (unknown) OR { [denom]: qty, ... }
-export default function DenominationPicker({ amount, value, onChange }) {
-  const isUnknown = value === null;
+export default function DenominationPicker({ amount, value, onChange, allowUnknown = true, label = 'Cash breakdown' }) {
+  const isUnknown = allowUnknown && value === null;
 
   const sum = isUnknown
     ? 0
-    : Object.entries(value).reduce((acc, [denom, qty]) => acc + Number(denom) * Number(qty || 0), 0);
+    : Object.entries(value || {}).reduce((acc, [denom, qty]) => acc + Number(denom) * Number(qty || 0), 0);
 
   function setQty(denom, qty) {
     const next = { ...(value || {}) };
@@ -26,24 +26,26 @@ export default function DenominationPicker({ amount, value, onChange }) {
   return (
     <div>
       <label style={{ marginBottom: 8 }}>
-        <span>Cash breakdown (optional)</span>
+        <span>{label}{!allowUnknown ? ' *' : ' (optional)'}</span>
       </label>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        <button
-          type="button"
-          className={`btn btn-sm ${isUnknown ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => onChange(null)}
-        >
-          Unknown
-        </button>
-        <button
-          type="button"
-          className={`btn btn-sm ${!isUnknown ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => onChange(value || {})}
-        >
-          Specify bills
-        </button>
-      </div>
+      {allowUnknown && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <button
+            type="button"
+            className={`btn btn-sm ${isUnknown ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => onChange(null)}
+          >
+            Unknown
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${!isUnknown ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => onChange(value || {})}
+          >
+            Specify bills
+          </button>
+        </div>
+      )}
 
       {!isUnknown && (
         <>

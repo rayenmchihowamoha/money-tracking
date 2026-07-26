@@ -36,6 +36,16 @@ export async function handler(event) {
 
   if (event.httpMethod === 'DELETE' && segments.length === 1) {
     const walletId = segments[0];
+    const qs = event.queryStringParameters || {};
+
+    if (qs.hard === 'true') {
+      const rows = await sql`
+        DELETE FROM wallets WHERE id = ${walletId} AND profile_id = ${profileId} RETURNING id
+      `;
+      if (rows.length === 0) return json(404, { error: 'Wallet not found.' });
+      return json(200, { ok: true });
+    }
+
     const rows = await sql`
       UPDATE wallets SET archived = true
       WHERE id = ${walletId} AND profile_id = ${profileId}

@@ -47,18 +47,36 @@ export async function handler(event) {
 
   if (event.httpMethod === 'PUT' && segments.length === 1) {
     const txnId = segments[0];
-    const { amount, date, reason, sourceOrTarget } = JSON.parse(event.body || '{}');
-    const rows = await sql`
-      UPDATE transactions t SET
-        amount = COALESCE(${amount}, t.amount),
-        date = COALESCE(${date}, t.date),
-        reason = ${reason ?? null},
-        source_or_target = ${sourceOrTarget ?? null}
-      FROM wallets w
-      WHERE t.id = ${txnId} AND t.wallet_id = w.id AND w.profile_id = ${profileId}
-      RETURNING t.*
+    const { type, amount, date, reason, sourceOrTarget, denominationBreakdown } = JSON.parse(event.body || '{}');
+
+    if (!['deposit', 'withdrawal'].includes(type) || !amount || Number(amount) <= 0 || !date) {
+      return json(400, { error: 'Type, a positive amount, and a date are required.' });
+    }
+
+    const existing = await sql`
+      SELECT t.id, t.linked_debt_id, t.linked_transfer_id, t.wallet_id FROM transactions t
+      JOIN wallets w ON w.id = t.wallet_id
+      WHERE t.id = ${txnId} AND w.profile_id = ${profileId}
     `;
-    if (rows.length === 0) return json(404, { error: 'Transaction not found.' });
+    if (existing.length === 0) return json(404, { error: 'Transaction not found.' });
+    if (existing[0].linked_debt_id) {
+      return json(400, { error: 'This entry is linked to a debt and cannot be edited directly. Manage it from the Debts page instead.' });
+    }
+    if (existing[0].linked_transfer_id) {
+      return json(400, { error: 'This entry is part of a transfer and cannot be edited directly. Delete the transfer and create a new one instead.' });
+    }
+
+    const rows = await sql`
+      UPDATE transactions SET
+        type = ${type},
+        amount = ${amount},
+        date = ${date},
+        reason = ${reason || null},
+        source_or_target = ${sourceOrTarget || null},
+        denomination_breakdown = ${denominationBreakdown ? sql.json(denominationBreakdown) : null}
+      WHERE id = ${txnId}
+      RETURNING *
+    `;
     return json(200, rows[0]);
   }
 

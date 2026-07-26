@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import TransactionDetailModal from '../components/TransactionDetailModal.jsx';
+import EditTransactionModal from '../components/EditTransactionModal.jsx';
 
 export default function History() {
   const [wallets, setWallets] = useState([]);
@@ -8,21 +9,27 @@ export default function History() {
   const [walletFilter, setWalletFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [detailTxn, setDetailTxn] = useState(null);
+  const [editTxn, setEditTxn] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const w = await api.listWallets();
-      setWallets(w);
-      const t = await api.listTransactions();
-      setTxns(t);
-      setLoading(false);
-    }
-    load();
-  }, []);
+  async function load() {
+    setLoading(true);
+    const w = await api.listWallets();
+    setWallets(w);
+    const t = await api.listTransactions();
+    setTxns(t);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
 
   const walletMap = useMemo(() => Object.fromEntries(wallets.map((w) => [w.id, w])), [wallets]);
+
+  async function handleDelete(txnId) {
+    if (!confirm('Delete this entry? The wallet balance will update.')) return;
+    await api.deleteTransaction(txnId);
+    load();
+  }
 
   const filtered = txns
     .filter((t) => walletFilter === 'all' || t.wallet_id === walletFilter)
@@ -64,15 +71,32 @@ export default function History() {
             </div>
             <div className="txn-meta">
               {walletMap[t.wallet_id]?.name} · {t.date} {t.reason ? `· ${t.reason}` : ''} {t.source_or_target ? `· ${t.source_or_target}` : ''}
+              {t.linked_debt_id ? ' · linked to a debt' : ''}
               {t.linked_transfer_id ? ' · transfer' : ''}
             </div>
           </div>
-          <button className="btn btn-outline btn-sm" onClick={() => setDetailTxn(t)}>View details</button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-outline btn-sm" onClick={() => setDetailTxn(t)}>View</button>
+            {!t.linked_debt_id && !t.linked_transfer_id && (
+              <button className="btn btn-outline btn-sm" onClick={() => setEditTxn(t)}>Edit</button>
+            )}
+            {!t.linked_debt_id && (
+              <button className="btn btn-outline btn-sm" onClick={() => handleDelete(t.id)}>Delete</button>
+            )}
+          </div>
         </div>
       ))}
 
       {detailTxn && (
         <TransactionDetailModal txn={detailTxn} wallet={walletMap[detailTxn.wallet_id]} onClose={() => setDetailTxn(null)} />
+      )}
+      {editTxn && (
+        <EditTransactionModal
+          txn={editTxn}
+          wallet={walletMap[editTxn.wallet_id]}
+          onClose={() => setEditTxn(null)}
+          onDone={() => { setEditTxn(null); load(); }}
+        />
       )}
     </div>
   );

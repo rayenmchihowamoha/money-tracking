@@ -1,17 +1,19 @@
 :root {
-  --paper: #F5F6F1;
-  --paper-alt: #EDEFE8;
+  --paper: #F1EADA;
+  --paper-alt: #E6DCC5;
   --surface: #FFFFFF;
-  --ink: #1A1D1B;
-  --ink-soft: #5B6259;
-  --hairline: #E2E4DB;
-  --accent: #1F6F54;      /* ledger green */
-  --accent-soft: #E5F0EA;
+  --ink: #17140F;
+  --ink-soft: #6B6152;
+  --hairline: #DCD0B4;
+  --accent: #17140F;      /* black — primary brand/action color */
+  --accent-soft: #EAE2CD;
+  --positive: #1F6F54;    /* deposits — functional, not brand */
+  --positive-soft: #E5F0EA;
   --amber: #C98A2C;       /* due soon */
   --amber-soft: #FBF1E1;
-  --red: #B3402E;         /* overdue / i-owe */
+  --red: #B3402E;         /* overdue / withdrawals / i-owe */
   --red-soft: #FBEAE6;
-  --radius: 10px;
+  --radius: 12px;
   --font-display: 'Source Serif 4', serif;
   --font-body: 'IBM Plex Sans', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
@@ -28,6 +30,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
+  font-size: 15px;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -184,8 +187,8 @@ a { color: inherit; }
 /* ---------- forms ---------- */
 input, select, textarea {
   font-family: var(--font-body);
-  font-size: 14px;
-  padding: 10px 12px;
+  font-size: 15px;
+  padding: 12px 14px;
   border: 1px solid var(--hairline);
   border-radius: 8px;
   background: var(--surface);
@@ -218,8 +221,8 @@ label {
 .btn {
   border: none;
   border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 14px;
+  padding: 12px 20px;
+  font-size: 15px;
   font-weight: 600;
   background: var(--ink);
   color: var(--paper);
@@ -324,7 +327,7 @@ label {
   color: var(--ink-soft);
 }
 
-.txn-amount.deposit { color: var(--accent); }
+.txn-amount.deposit { color: var(--positive); }
 .txn-amount.withdrawal { color: var(--red); }
 
 .pill {
@@ -337,7 +340,7 @@ label {
 
 .pill-open { background: var(--paper-alt); color: var(--ink-soft); }
 .pill-partial { background: var(--amber-soft); color: var(--amber); }
-.pill-paid { background: var(--accent-soft); color: var(--accent); }
+.pill-paid { background: var(--positive-soft); color: var(--positive); }
 .pill-overdue { background: var(--red-soft); color: var(--red); }
 .pill-soon { background: var(--amber-soft); color: var(--amber); }
 
@@ -366,7 +369,7 @@ label {
 
 .debt-progress-bar {
   height: 100%;
-  background: var(--accent);
+  background: var(--positive);
 }
 
 .tabs {
@@ -426,7 +429,7 @@ label {
   font-family: var(--font-mono);
 }
 
-.denom-sum.match { color: var(--accent); }
+.denom-sum.match { color: var(--positive); }
 .denom-sum.mismatch { color: var(--red); }
 
 /* ---------- modal ---------- */
@@ -485,7 +488,76 @@ label {
 }
 
 @media (max-width: 600px) {
-  .container { padding: 20px 14px 60px; }
+  .container { padding: 16px 14px 90px; }
   .field-row { flex-direction: column; }
   .denom-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+  .topbar > div {
+    width: 100%;
+    justify-content: space-between;
+    font-size: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .page-title { font-size: 24px; }
+
+  .btn, .btn-sm {
+    padding: 12px 16px;
+    font-size: 15px;
+    min-height: 44px;
+  }
+  .btn-sm {
+    padding: 10px 14px;
+    font-size: 13px;
+    min-height: 38px;
+  }
+
+  input, select, textarea {
+    font-size: 16px; /* prevents iOS auto-zoom on focus */
+    padding: 12px 14px;
+  }
+
+  .section-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .section-head > div:last-child {
+    width: 100%;
+  }
+  .section-head .btn, .section-head button {
+    flex: 1;
+  }
+
+  .wallet-grid { grid-template-columns: 1fr; }
+
+  .modal-backdrop { padding: 0; align-items: flex-end; }
+  .modal {
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 22px 18px 28px;
+  }
+
+  .txn-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .txn-row > div:last-child {
+    width: 100%;
+  }
+  .txn-row > div:last-child .btn-sm {
+    flex: 1;
+  }
+
+  .amount { font-size: 15px; }
+  .wallet-balance { font-size: 22px; }
 }

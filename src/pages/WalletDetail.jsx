@@ -5,6 +5,8 @@ import DepositModal from '../components/DepositModal.jsx';
 import WithdrawModal from '../components/WithdrawModal.jsx';
 import TransferModal from '../components/TransferModal.jsx';
 import TransactionDetailModal from '../components/TransactionDetailModal.jsx';
+import EditTransactionModal from '../components/EditTransactionModal.jsx';
+import WalletBillsModal from '../components/WalletBillsModal.jsx';
 
 export default function WalletDetail() {
   const { id } = useParams();
@@ -14,6 +16,7 @@ export default function WalletDetail() {
   const [txns, setTxns] = useState([]);
   const [modal, setModal] = useState(null);
   const [detailTxn, setDetailTxn] = useState(null);
+  const [editTxn, setEditTxn] = useState(null);
   const [loading, setLoading] = useState(true);
 
   async function load() {
@@ -40,6 +43,19 @@ export default function WalletDetail() {
     navigate('/');
   }
 
+  async function handleDeleteWallet() {
+    const sure = confirm(
+      `Permanently delete "${wallet.name}"? This removes the wallet AND every deposit/withdrawal recorded in it — this cannot be undone. Consider "Archive" instead if you just want to hide it.`
+    );
+    if (!sure) return;
+    try {
+      await api.deleteWallet(wallet.id);
+      navigate('/');
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
   if (loading) return <div className="empty-state">Loading…</div>;
   if (!wallet) return <div className="empty-state">Wallet not found.</div>;
 
@@ -56,7 +72,11 @@ export default function WalletDetail() {
           <button className="btn btn-outline" onClick={() => setModal('deposit')}>+ Add</button>
           <button className="btn btn-outline" onClick={() => setModal('withdraw')}>− Take out</button>
           <button className="btn btn-outline" onClick={() => setModal('transfer')}>⇄ Transfer</button>
+          {wallet.currency === 'DA' && (
+            <button className="btn btn-outline" onClick={() => setModal('bills')}>🧾 Bills</button>
+          )}
           <button className="btn btn-outline" onClick={handleArchive}>Archive</button>
+          <button className="btn btn-danger" onClick={handleDeleteWallet}>Delete</button>
         </div>
       </div>
 
@@ -74,8 +94,11 @@ export default function WalletDetail() {
               {t.linked_transfer_id ? ' · transfer' : ''}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-outline btn-sm" onClick={() => setDetailTxn(t)}>View details</button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-outline btn-sm" onClick={() => setDetailTxn(t)}>View</button>
+            {!t.linked_debt_id && !t.linked_transfer_id && (
+              <button className="btn btn-outline btn-sm" onClick={() => setEditTxn(t)}>Edit</button>
+            )}
             {!t.linked_debt_id && (
               <button className="btn btn-outline btn-sm" onClick={() => handleDelete(t.id)}>Delete</button>
             )}
@@ -92,8 +115,14 @@ export default function WalletDetail() {
       {modal === 'transfer' && (
         <TransferModal wallets={wallets} fromWallet={wallet} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />
       )}
+      {modal === 'bills' && (
+        <WalletBillsModal wallet={wallet} txns={txns} onClose={() => setModal(null)} />
+      )}
       {detailTxn && (
         <TransactionDetailModal txn={detailTxn} wallet={wallet} onClose={() => setDetailTxn(null)} />
+      )}
+      {editTxn && (
+        <EditTransactionModal txn={editTxn} wallet={wallet} onClose={() => setEditTxn(null)} onDone={() => { setEditTxn(null); load(); }} />
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Modal from './Modal.jsx';
+import DenominationPicker from './DenominationPicker.jsx';
 import { api } from '../api.js';
 
 export default function TransferModal({ wallets, fromWallet, onClose, onDone }) {
@@ -9,11 +10,15 @@ export default function TransferModal({ wallets, fromWallet, onClose, onDone }) 
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState('');
+  const [denoms, setDenoms] = useState({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   const selectedFrom = activeWallets.find((w) => w.id === fromWalletId);
+  const isDA = selectedFrom?.currency === 'DA';
   const toOptions = activeWallets.filter((w) => w.id !== fromWalletId && (!selectedFrom || w.currency === selectedFrom.currency));
+
+  const denomSum = Object.entries(denoms).reduce((acc, [d, q]) => acc + Number(d) * Number(q || 0), 0);
 
   async function submit(e) {
     e.preventDefault();
@@ -26,9 +31,30 @@ export default function TransferModal({ wallets, fromWallet, onClose, onDone }) 
       setError('Amount and date are required.');
       return;
     }
+    if (Number(amount) > Number(selectedFrom.balance)) {
+      setError(`"${selectedFrom.name}" only has ${Number(selectedFrom.balance).toLocaleString()} ${selectedFrom.currency} — not enough to transfer ${amount}.`);
+      return;
+    }
+    if (isDA) {
+      if (Object.keys(denoms).length === 0) {
+        setError('Specifying which bills are moving is required for a transfer.');
+        return;
+      }
+      if (denomSum !== Number(amount)) {
+        setError(`The bills you specified add up to ${denomSum} DA, not ${amount} DA. Adjust them to match.`);
+        return;
+      }
+    }
     setBusy(true);
     try {
-      await api.createTransfer({ fromWalletId, toWalletId, amount: Number(amount), date, note: note || null });
+      await api.createTransfer({
+        fromWalletId,
+        toWalletId,
+        amount: Number(amount),
+        date,
+        note: note || null,
+        denominationBreakdown: isDA ? denoms : null,
+      });
       onDone();
     } catch (e) {
       setError(e.message);
@@ -45,7 +71,7 @@ export default function TransferModal({ wallets, fromWallet, onClose, onDone }) 
             From wallet *
             <select
               value={fromWalletId}
-              onChange={(e) => { setFromWalletId(e.target.value); setToWalletId(''); }}
+              onChange={(e) => { setFromWalletId(e.target.value); setToWalletId(''); setDenoms({}); }}
             >
               <option value="">Select a wallet…</option>
               {activeWallets.map((w) => (
@@ -76,6 +102,14 @@ export default function TransferModal({ wallets, fromWallet, onClose, onDone }) 
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
         </div>
+        {selectedFrom && (
+          <div className="txn-meta">Available in "{selectedFrom.name}": {Number(selectedFrom.balance).toLocaleString()} {selectedFrom.currency}</div>
+        )}
+
+        {isDA && (
+          <DenominationPicker amount={amount} value={denoms} onChange={setDenoms} allowUnknown={false} label="Which bills are being moved" />
+        )}
+
         <label>
           Note (optional)
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. moving savings around" />
